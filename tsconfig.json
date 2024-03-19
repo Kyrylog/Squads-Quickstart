@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    /*adjust TypeScript configuration to target ES2020 or later
+    to make BigInt literals available 
+    "target": "es6" edited */
+    "target": "es2020",
+    "esModuleInterop": true
+  }
+}
