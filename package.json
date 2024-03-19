@@ -1,0 +1,20 @@
+{
+  "scripts": {
+    "test": "npx tsx main.ts"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.70.3",
+    "@sqds/multisig": "^2.1.0",
+    "@solana/wallet-adapter-wallets": "^0.19.32",
+    "jest": "^29.7.0",
+    "tsx": "^4.7.1"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.12",
+    "@types/mocha": "^10.0.6",
+    "chai": "^5.1.0",
+    "mocha": "^10.3.0",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^5.4.2"
+  }
+}
