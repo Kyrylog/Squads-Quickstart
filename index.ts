@@ -1,5 +1,5 @@
 import { Connection, Keypair, SystemProgram, LAMPORTS_PER_SOL, TransactionMessage } from '@solana/web3.js';
-import { airdrop } from 'functions';
+import { airdrop } from './functions';
 import * as multisig from "@sqds/multisig";
 
 console.log(multisig.PROGRAM_ADDRESS);
@@ -69,7 +69,7 @@ const transactionProposal = async() => {
         recentBlockhash: (await connection.getLatestBlockhash()).blockhash
     });
 
-    const transactionIndex = 1n;
+    const transactionIndex = BigInt(1);
     const signature1 = await multisig.rpc.vaultTransactionCreate({
         connection,
         feePayer: creator,
@@ -96,7 +96,7 @@ const transactionProposal = async() => {
 }
 
 const approveTransaction = async() => {
-    const transactionIndex = 1n;
+    const transactionIndex = BigInt(1);
     const firstApprove =  await multisig.rpc.proposalApprove({
         connection,
         feePayer: creator,
@@ -120,7 +120,7 @@ const approveTransaction = async() => {
 }
 
 const executeProposal = async() => {
-    const transactionIndex = 1n;
+    const transactionIndex = BigInt(1);
     const [proposalPda] = multisig.getProposalPda({
         multisigPda,
         transactionIndex
