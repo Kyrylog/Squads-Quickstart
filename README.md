@@ -1,1 +1,3 @@
-https://docs.squads.so/main/v/development/introduction/quickstart
+Install Solana CLI https://docs.solanalabs.com/cli/install
+sh runlocalnet.sh
+npm test
