@@ -1,25 +1,42 @@
 import * as multisig from "@sqds/multisig";
-import { Connection, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { Connection, Keypair, LAMPORTS_PER_SOL, SystemProgram, TransactionMessage } from "@solana/web3.js";
 
 const { Permission, Permissions } = multisig.types;
+const { Multisig } = multisig.accounts;
+
 const connection = new Connection("http://localhost:8899", "confirmed");
+
+const creator = Keypair.generate();
+const publicKey = Keypair.generate().publicKey;
+const secretKey = Keypair.generate().secretKey;
+const createKey = {publicKey, secretKey};
+const secondMember = Keypair.generate()
+
+const [multisigPda] = multisig.getMultisigPda({
+    createKey: creator.publicKey,
+});
+
+const [vaultPda, _] = multisig.getVaultPda({
+    multisigPda,
+    index: 0,
+});
+
 describe("Interacting with the Squads V4 SDK", () => {
-    const creator = Keypair.generate();
-    const secondMember = Keypair.generate();
     before(async () => {
         const airdropSignature = await connection.requestAirdrop(
             creator.publicKey,
             1 * LAMPORTS_PER_SOL
         );
         await connection.confirmTransaction(airdropSignature);
+
+        const accountInfo = await connection.getAccountInfo(creator.publicKey);
+        if (accountInfo.executable) {
+            console.log('This is an executable account.');
+        } else {
+            console.log('This is not an executable.');
+        }
     });
 
-    const createKey = Keypair.generate().publicKey;
-
-    // Derive the multisig account PDA
-    const [multisigPda] = multisig.getMultisigPda({
-        createKey,
-    });
 
     it("Create a new multisig", async () => {
         // Create the multisig
@@ -29,13 +46,13 @@ describe("Interacting with the Squads V4 SDK", () => {
             createKey,
             // The creator & fee payer
             creator,
-            multisigPda,
+            multisigPda: vaultPda,
             configAuthority: null,
             timeLock: 0,
             members: [{
-                    key: creator.publicKey,
-                    permissions: Permissions.all(),
-                },
+                key: creator.publicKey,
+                permissions: Permissions.all(),
+            },
                 {
                     key: secondMember.publicKey,
                     // This permission means that the user will only be able to vote on transactions
@@ -44,17 +61,15 @@ describe("Interacting with the Squads V4 SDK", () => {
             ],
             // This means that there needs to be 2 votes for a transaction proposal to be approved
             threshold: 2,
+            rentCollector: null,
         });
         console.log("Multisig created: ", signature);
     });
 });
+
 it("Create a transaction proposal", async () => {
-    const [vaultPda, vaultBump] = multisig.getVaultPda({
-        multisigPda,
-        index: 0,
-    });
     const instruction = SystemProgram.transfer({
-    // The transfer is being signed from the Squads Vault, that is why we use the VaultPda
+        // The transfer is being signed from the Squads Vault, that is why we use the VaultPda
         fromPubkey: vaultPda,
         toPubkey: creator.publicKey,
         lamports: 1 * LAMPORTS_PER_SOL
@@ -65,8 +80,9 @@ it("Create a transaction proposal", async () => {
         recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
         instructions: [instruction],
     });
+
     // This is the first transaction in the multisig
-    const transactionIndex = 1n;
+    const transactionIndex = BigInt(1);
     const signature1 = await multisig.rpc.vaultTransactionCreate({
         connection,
         feePayer: creator,
@@ -80,26 +96,27 @@ it("Create a transaction proposal", async () => {
     });
 
     console.log("Transaction created: ", signature1);
-    
+
     const signature2 = await multisig.rpc.proposalCreate({
         connection,
-        feePayer: members.voter,
+        feePayer: secondMember,
         multisigPda,
         transactionIndex,
-        creator: feePayer,
+        creator,
     });
-    
+
     console.log("Transaction proposal created: ", signature2);
-    
+
 });
+
 it("Vote on the created proposal", async () => {
-    const transactionIndex = 1n;
+    const transactionIndex =  BigInt(1);
     multisig.rpc.proposalApprove({
         connection,
         feePayer: creator,
         multisigPda,
         transactionIndex,
-        member: creator.publicKey,
+        member: creator,
     });
 
     multisig.rpc.proposalApprove({
@@ -107,12 +124,12 @@ it("Vote on the created proposal", async () => {
         feePayer: creator,
         multisigPda,
         transactionIndex,
-        member: secondMember.publicKey,
-        signers: [creator, secondMember],
+        member: secondMember,
     });
 });
+
 it("Execute the proposal", async () => {
-    const transactionIndex = 1n;
+    const transactionIndex = BigInt(1);
     const [proposalPda] = multisig.getProposalPda({
         multisigPda,
         transactionIndex,
